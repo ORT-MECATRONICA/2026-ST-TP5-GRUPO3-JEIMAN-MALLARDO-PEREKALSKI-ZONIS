@@ -1,3 +1,4 @@
+//Grupo 3: Kenai Jeiman, Marco Mallardo, Ramiro Perekalski, Martín Zonis
 #define ENABLE_USER_AUTH
 #define ENABLE_DATABASE
 
