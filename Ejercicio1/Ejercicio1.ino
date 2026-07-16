@@ -11,7 +11,7 @@
 #include <U8g2lib.h>
 #include "time.h"
 
-#define DHTPIN 4        
+#define DHTPIN 23        
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -29,8 +29,8 @@ typedef enum {
 } estados_t;
 
 estados_t maquinaPantalla = RST;
-#define WIFI_SSID "A56"
-#define WIFI_PASSWORD "laberinto"
+#define WIFI_SSID "MECA-IoT-V2"
+#define WIFI_PASSWORD "IoT$2026"
 #define Web_API_KEY "AIzaSyCH-6lkPl6yPjd0TNlXiQBuVp6oKSCBi68"
 #define DATABASE_URL "https://st-tp5-g3-default-rtdb.firebaseio.com/"
 #define USER_EMAIL "marcomallardo1903@gmail.com"
@@ -68,9 +68,6 @@ JsonWriter writer;
 bool SW1Presionado = false;
 bool SW2Presionado = false;
 
-// -----------------------------------------
-// Funciones Auxiliares Setup
-// -----------------------------------------
 void initWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi ..");
@@ -81,6 +78,7 @@ void initWiFi() {
   Serial.println("\nConectado a WiFi!");
 }
 
+// Mantenemos getTime solo para el nombre de la ruta en Firebase (no admite "/")
 unsigned long getTime() {
   time_t now;
   struct tm timeinfo;
@@ -89,6 +87,19 @@ unsigned long getTime() {
   }
   time(&now);
   return now;
+}
+
+// Función solicitada para guardar en el JSON
+String obtenerTiempoReal() {
+  struct tm timeinfo;
+
+  if (!getLocalTime(&timeinfo)) {
+    return "Sin hora"; 
+  }
+
+  char buffer[25];
+  strftime(buffer, sizeof(buffer), "%d/%m/%Y %H:%M:%S", &timeinfo);
+  return String(buffer);
 }
 
 void setup() {
@@ -215,15 +226,17 @@ void loop() {
       uid = app.getUid().c_str();
       databasePath = "/UsersData/" + uid + "/readings";
 
-      timestamp = getTime();
+      timestamp = getTime(); // Para la ruta en Firebase
+      String fechaHoraFormateada = obtenerTiempoReal(); // Tu función para el JSON
+
       Serial.print("Enviando datos - time: ");
-      Serial.println(timestamp);
+      Serial.println(fechaHoraFormateada);
 
       parentPath = databasePath + "/" + String(timestamp);
 
-      // Crear y unir JSON (temperatura y timestamp)
+      // Crear y unir JSON
       writer.create(obj1, tempPath, temperature);
-      writer.create(obj2, timePath, timestamp);
+      writer.create(obj2, timePath, fechaHoraFormateada);
       writer.join(jsonData, 2, obj1, obj2);
 
       Database.set<object_t>(aClient, parentPath, jsonData, processData, "RTDB_Send_Data");
